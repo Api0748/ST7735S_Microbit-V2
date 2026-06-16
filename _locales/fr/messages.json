@@ -1,0 +1,25 @@
+{
+    "LCD_ST7735_MicrobitV2.LCD_Init|block": "Initialiser l'écran LCD",
+    "LCD_ST7735_MicrobitV2.LCD_SetBL|block": "Définir le rétroéclairage à %Light",
+    "LCD_ST7735_MicrobitV2.LCD_ClearBuf|block": "Vider le Buffer",
+    "LCD_ST7735_MicrobitV2.LCD_Display|block": "Rafraîchir l'écran",
+    "LCD_ST7735_MicrobitV2.LCD_Clear|block": "Effacer l'écran directement",
+    "LCD_ST7735_MicrobitV2.DrawPoint|block": "Dessiner un point en X %X Y %Y Couleur %Color Taille %Dot_Pixel",
+    "LCD_ST7735_MicrobitV2.DrawLine|block": "Dessiner une ligne de X1 %Xstart Y1 %Ystart à X2 %Xend Y2 %Yend Couleur %Color Taille %Dot_Pixel Style %Line_Style",
+    "LCD_ST7735_MicrobitV2.DrawRectangle|block": "Dessiner un rectangle X1 %Xstart Y1 %Ystart X2 %Xend Y2 %Yend Couleur %Color Remplissage %Draw_Fill Taille %Dot_Pixel",
+    "LCD_ST7735_MicrobitV2.DrawCircle|block": "Dessiner un cercle Centre X %X_Center Y %Y_Center Rayon %Radius Couleur %Color Remplissage %Draw_Fill Taille %Dot_Pixel",
+    "LCD_ST7735_MicrobitV2.DisString|block": "Afficher le texte %str en X %Xchar Y %Ychar Couleur %Color",
+    
+    "LCD_ST7735_MicrobitV2.COLOR.WHITE|block": "Blanc",
+    "LCD_ST7735_MicrobitV2.COLOR.BLACK|block": "Noir",
+    "LCD_ST7735_MicrobitV2.COLOR.BLUE|block": "Bleu",
+    "LCD_ST7735_MicrobitV2.COLOR.RED|block": "Rouge",
+    "LCD_ST7735_MicrobitV2.COLOR.GREEN|block": "Vert",
+    "LCD_ST7735_MicrobitV2.COLOR.YELLOW|block": "Jaune",
+    
+    "LCD_ST7735_MicrobitV2.LINE_STYLE.LINE_SOLID|block": "Continu",
+    "LCD_ST7735_MicrobitV2.LINE_STYLE.LINE_DOTTED|block": "Pointillé",
+    
+    "LCD_ST7735_MicrobitV2.DRAW_FILL.DRAW_EMPTY|block": "Vide",
+    "LCD_ST7735_MicrobitV2.DRAW_FILL.DRAW_FULL|block": "Plein"
+}
