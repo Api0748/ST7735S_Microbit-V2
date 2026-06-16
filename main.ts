@@ -1,277 +1,1900 @@
-//% weight=20 color=#118AD6 icon="\uf108" block="LCD ST7735 V2"
+/*****************************************************************************
+* | File      	:   1in8LCD.ts
+* | Author      :   hnwangkg-ezio for Waveshare 
+* | Function    :   Contorl 1.8inch lcd Show
+* | Info        :
+*----------------
+* | This version:   V2.0
+* | Date        :   2026-16-06
+* | Info        :   for micro:bit v2
+*
+******************************************************************************/
+let GUI_BACKGROUND_COLOR = 1
+let FONT_BACKGROUND_COLOR = 1
+let FONT_FOREGROUND_COLOR = 0
+
+let LCD_WIDTH = 160  //LCD width
+let LCD_HEIGHT = 128 //LCD height
+
+// SRAM opcodes
+let SRAM_CMD_WREN = 0x06
+let SRAM_CMD_WRDI = 0x04
+let SRAM_CMD_RDSR = 0x05
+let SRAM_CMD_WRSR = 0x01
+let SRAM_CMD_READ = 0x03
+let SRAM_CMD_WRITE = 0x02
+
+// SRAM modes
+let SRAM_BYTE_MODE = 0x00
+let SRAM_PAGE_MODE = 0x80
+let SRAM_STREAM_MODE = 0x40
+
+enum COLOR {
+    WHITE = 0xFFFF,
+    BLACK = 0x0000,
+    BLUE = 0x001F,
+    BRED = 0XF81F,
+    GRED = 0XFFE0,
+    GBLUE = 0X07FF,
+    RED = 0xF800,
+    MAGENTA = 0xF81F,
+    GREEN = 0x07E0,
+    CYAN = 0x7FFF,
+    YELLOW = 0xFFE0,
+    BROWN = 0XBC40,
+    BRRED = 0XFC07,
+    GRAY = 0X8430
+}
+
+enum DOT_PIXEL{
+    DOT_PIXEL_1 = 1,
+    DOT_PIXEL_2,
+    DOT_PIXEL_3,
+    DOT_PIXEL_4
+};
+
+enum LINE_STYLE {
+    LINE_SOLID = 0,
+    LINE_DOTTED,
+};
+
+enum DRAW_FILL {
+    DRAW_EMPTY = 0,
+    DRAW_FULL,
+};
+
+let Font12_Table:number[] = 
+[
+    // @0 ' ' (7 pixels wide)
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @12 '!' (7 pixels wide)
+    0x00, //        
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x00, //        
+    0x00, //        
+    0x10, //    #   
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @24 '"' (7 pixels wide)
+    0x00, //        
+    0x6C, //  ## ## 
+    0x48, //  #  #  
+    0x48, //  #  #  
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @36 '#' (7 pixels wide)
+    0x00, //        
+    0x14, //    # # 
+    0x14, //    # # 
+    0x28, //   # #  
+    0x7C, //  ##### 
+    0x28, //   # #  
+    0x7C, //  ##### 
+    0x28, //   # #  
+    0x50, //  # #   
+    0x50, //  # #   
+    0x00, //        
+    0x00, //        
+
+    // @48 '$' (7 pixels wide)
+    0x00, //        
+    0x10, //    #   
+    0x38, //   ###  
+    0x40, //  #     
+    0x40, //  #     
+    0x38, //   ###  
+    0x48, //  #  #  
+    0x70, //  ###   
+    0x10, //    #   
+    0x10, //    #   
+    0x00, //        
+    0x00, //        
+
+    // @60 '%' (7 pixels wide)
+    0x00, //        
+    0x20, //   #    
+    0x50, //  # #   
+    0x20, //   #    
+    0x0C, //     ## 
+    0x70, //  ###   
+    0x08, //     #  
+    0x14, //    # # 
+    0x08, //     #  
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @72 '&' (7 pixels wide)
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x18, //    ##  
+    0x20, //   #    
+    0x20, //   #    
+    0x54, //  # # # 
+    0x48, //  #  #  
+    0x34, //   ## # 
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @84 ''' (7 pixels wide)
+    0x00, //        
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @96 '(' (7 pixels wide)
+    0x00, //        
+    0x08, //     #  
+    0x08, //     #  
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x08, //     #  
+    0x08, //     #  
+    0x00, //        
+
+    // @108 ')' (7 pixels wide)
+    0x00, //        
+    0x20, //   #    
+    0x20, //   #    
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x20, //   #    
+    0x20, //   #    
+    0x00, //        
+
+    // @120 '*' (7 pixels wide)
+    0x00, //        
+    0x10, //    #   
+    0x7C, //  ##### 
+    0x10, //    #   
+    0x28, //   # #  
+    0x28, //   # #  
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @132 '+' (7 pixels wide)
+    0x00, //        
+    0x00, //        
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0xFE, // #######
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @144 ',' (7 pixels wide)
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x18, //    ##  
+    0x10, //    #   
+    0x30, //   ##   
+    0x20, //   #    
+    0x00, //        
+
+    // @156 '-' (7 pixels wide)
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x7C, //  ##### 
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @168 '.' (7 pixels wide)
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x30, //   ##   
+    0x30, //   ##   
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @180 '/' (7 pixels wide)
+    0x00, //        
+    0x04, //      # 
+    0x04, //      # 
+    0x08, //     #  
+    0x08, //     #  
+    0x10, //    #   
+    0x10, //    #   
+    0x20, //   #    
+    0x20, //   #    
+    0x40, //  #     
+    0x00, //        
+    0x00, //        
+
+    // @192 '0' (7 pixels wide)
+    0x00, //        
+    0x38, //   ###  
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x38, //   ###  
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @204 '1' (7 pixels wide)
+    0x00, //        
+    0x30, //   ##   
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x7C, //  ##### 
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @216 '2' (7 pixels wide)
+    0x00, //        
+    0x38, //   ###  
+    0x44, //  #   # 
+    0x04, //      # 
+    0x08, //     #  
+    0x10, //    #   
+    0x20, //   #    
+    0x44, //  #   # 
+    0x7C, //  ##### 
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @228 '3' (7 pixels wide)
+    0x00, //        
+    0x38, //   ###  
+    0x44, //  #   # 
+    0x04, //      # 
+    0x18, //    ##  
+    0x04, //      # 
+    0x04, //      # 
+    0x44, //  #   # 
+    0x38, //   ###  
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @240 '4' (7 pixels wide)
+    0x00, //        
+    0x0C, //     ## 
+    0x14, //    # # 
+    0x14, //    # # 
+    0x24, //   #  # 
+    0x44, //  #   # 
+    0x7E, //  ######
+    0x04, //      # 
+    0x0E, //     ###
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @252 '5' (7 pixels wide)
+    0x00, //        
+    0x3C, //   #### 
+    0x20, //   #    
+    0x20, //   #    
+    0x38, //   ###  
+    0x04, //      # 
+    0x04, //      # 
+    0x44, //  #   # 
+    0x38, //   ###  
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @264 '6' (7 pixels wide)
+    0x00, //        
+    0x1C, //    ### 
+    0x20, //   #    
+    0x40, //  #     
+    0x78, //  ####  
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x38, //   ###  
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @276 '7' (7 pixels wide)
+    0x00, //        
+    0x7C, //  ##### 
+    0x44, //  #   # 
+    0x04, //      # 
+    0x08, //     #  
+    0x08, //     #  
+    0x08, //     #  
+    0x10, //    #   
+    0x10, //    #   
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @288 '8' (7 pixels wide)
+    0x00, //        
+    0x38, //   ###  
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x38, //   ###  
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x38, //   ###  
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @300 '9' (7 pixels wide)
+    0x00, //        
+    0x38, //   ###  
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x3C, //   #### 
+    0x04, //      # 
+    0x08, //     #  
+    0x70, //  ###   
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @312 ':' (7 pixels wide)
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x30, //   ##   
+    0x30, //   ##   
+    0x00, //        
+    0x00, //        
+    0x30, //   ##   
+    0x30, //   ##   
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @324 ';' (7 pixels wide)
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x18, //    ##  
+    0x18, //    ##  
+    0x00, //        
+    0x00, //        
+    0x18, //    ##  
+    0x30, //   ##   
+    0x20, //   #    
+    0x00, //        
+    0x00, //        
+
+    // @336 '<' (7 pixels wide)
+    0x00, //        
+    0x00, //        
+    0x0C, //     ## 
+    0x10, //    #   
+    0x60, //  ##    
+    0x80, // #      
+    0x60, //  ##    
+    0x10, //    #   
+    0x0C, //     ## 
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @348 '=' (7 pixels wide)
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x7C, //  ##### 
+    0x00, //        
+    0x7C, //  ##### 
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @360 '>' (7 pixels wide)
+    0x00, //        
+    0x00, //        
+    0xC0, // ##     
+    0x20, //   #    
+    0x18, //    ##  
+    0x04, //      # 
+    0x18, //    ##  
+    0x20, //   #    
+    0xC0, // ##     
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @372 '?' (7 pixels wide)
+    0x00, //        
+    0x00, //        
+    0x18, //    ##  
+    0x24, //   #  # 
+    0x04, //      # 
+    0x08, //     #  
+    0x10, //    #   
+    0x00, //        
+    0x30, //   ##   
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @384 '@' (7 pixels wide)
+    0x38, //   ###  
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x4C, //  #  ## 
+    0x54, //  # # # 
+    0x54, //  # # # 
+    0x4C, //  #  ## 
+    0x40, //  #     
+    0x44, //  #   # 
+    0x38, //   ###  
+    0x00, //        
+    0x00, //        
+
+    // @396 'A' (7 pixels wide)
+    0x00, //        
+    0x30, //   ##   
+    0x10, //    #   
+    0x28, //   # #  
+    0x28, //   # #  
+    0x28, //   # #  
+    0x7C, //  ##### 
+    0x44, //  #   # 
+    0xEE, // ### ###
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @408 'B' (7 pixels wide)
+    0x00, //        
+    0xF8, // #####  
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x78, //  ####  
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0xF8, // #####  
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @420 'C' (7 pixels wide)
+    0x00, //        
+    0x3C, //   #### 
+    0x44, //  #   # 
+    0x40, //  #     
+    0x40, //  #     
+    0x40, //  #     
+    0x40, //  #     
+    0x44, //  #   # 
+    0x38, //   ###  
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @432 'D' (7 pixels wide)
+    0x00, //        
+    0xF0, // ####   
+    0x48, //  #  #  
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x48, //  #  #  
+    0xF0, // ####   
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @444 'E' (7 pixels wide)
+    0x00, //        
+    0xFC, // ###### 
+    0x44, //  #   # 
+    0x50, //  # #   
+    0x70, //  ###   
+    0x50, //  # #   
+    0x40, //  #     
+    0x44, //  #   # 
+    0xFC, // ###### 
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @456 'F' (7 pixels wide)
+    0x00, //        
+    0x7E, //  ######
+    0x22, //   #   #
+    0x28, //   # #  
+    0x38, //   ###  
+    0x28, //   # #  
+    0x20, //   #    
+    0x20, //   #    
+    0x70, //  ###   
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @468 'G' (7 pixels wide)
+    0x00, //        
+    0x3C, //   #### 
+    0x44, //  #   # 
+    0x40, //  #     
+    0x40, //  #     
+    0x4E, //  #  ###
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x38, //   ###  
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @480 'H' (7 pixels wide)
+    0x00, //        
+    0xEE, // ### ###
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x7C, //  ##### 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0xEE, // ### ###
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @492 'I' (7 pixels wide)
+    0x00, //        
+    0x7C, //  ##### 
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x7C, //  ##### 
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @504 'J' (7 pixels wide)
+    0x00, //        
+    0x3C, //   #### 
+    0x08, //     #  
+    0x08, //     #  
+    0x08, //     #  
+    0x48, //  #  #  
+    0x48, //  #  #  
+    0x48, //  #  #  
+    0x30, //   ##   
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @516 'K' (7 pixels wide)
+    0x00, //        
+    0xEE, // ### ###
+    0x44, //  #   # 
+    0x48, //  #  #  
+    0x50, //  # #   
+    0x70, //  ###   
+    0x48, //  #  #  
+    0x44, //  #   # 
+    0xE6, // ###  ##
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @528 'L' (7 pixels wide)
+    0x00, //        
+    0x70, //  ###   
+    0x20, //   #    
+    0x20, //   #    
+    0x20, //   #    
+    0x20, //   #    
+    0x24, //   #  # 
+    0x24, //   #  # 
+    0x7C, //  ##### 
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @540 'M' (7 pixels wide)
+    0x00, //        
+    0xEE, // ### ###
+    0x6C, //  ## ## 
+    0x6C, //  ## ## 
+    0x54, //  # # # 
+    0x54, //  # # # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0xEE, // ### ###
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @552 'N' (7 pixels wide)
+    0x00, //        
+    0xEE, // ### ###
+    0x64, //  ##  # 
+    0x64, //  ##  # 
+    0x54, //  # # # 
+    0x54, //  # # # 
+    0x54, //  # # # 
+    0x4C, //  #  ## 
+    0xEC, // ### ## 
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @564 'O' (7 pixels wide)
+    0x00, //        
+    0x38, //   ###  
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x38, //   ###  
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @576 'P' (7 pixels wide)
+    0x00, //        
+    0x78, //  ####  
+    0x24, //   #  # 
+    0x24, //   #  # 
+    0x24, //   #  # 
+    0x38, //   ###  
+    0x20, //   #    
+    0x20, //   #    
+    0x70, //  ###   
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @588 'Q' (7 pixels wide)
+    0x00, //        
+    0x38, //   ###  
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x38, //   ###  
+    0x1C, //    ### 
+    0x00, //        
+    0x00, //        
+
+    // @600 'R' (7 pixels wide)
+    0x00, //        
+    0xF8, // #####  
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x78, //  ####  
+    0x48, //  #  #  
+    0x44, //  #   # 
+    0xE2, // ###   #
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @612 'S' (7 pixels wide)
+    0x00, //        
+    0x34, //   ## # 
+    0x4C, //  #  ## 
+    0x40, //  #     
+    0x38, //   ###  
+    0x04, //      # 
+    0x04, //      # 
+    0x64, //  ##  # 
+    0x58, //  # ##  
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @624 'T' (7 pixels wide)
+    0x00, //        
+    0xFE, // #######
+    0x92, // #  #  #
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x38, //   ###  
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @636 'U' (7 pixels wide)
+    0x00, //        
+    0xEE, // ### ###
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x38, //   ###  
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @648 'V' (7 pixels wide)
+    0x00, //        
+    0xEE, // ### ###
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x28, //   # #  
+    0x28, //   # #  
+    0x28, //   # #  
+    0x10, //    #   
+    0x10, //    #   
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @660 'W' (7 pixels wide)
+    0x00, //        
+    0xEE, // ### ###
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x54, //  # # # 
+    0x54, //  # # # 
+    0x54, //  # # # 
+    0x54, //  # # # 
+    0x28, //   # #  
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @672 'X' (7 pixels wide)
+    0x00, //        
+    0xC6, // ##   ##
+    0x44, //  #   # 
+    0x28, //   # #  
+    0x10, //    #   
+    0x10, //    #   
+    0x28, //   # #  
+    0x44, //  #   # 
+    0xC6, // ##   ##
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @684 'Y' (7 pixels wide)
+    0x00, //        
+    0xEE, // ### ###
+    0x44, //  #   # 
+    0x28, //   # #  
+    0x28, //   # #  
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x38, //   ###  
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @696 'Z' (7 pixels wide)
+    0x00, //        
+    0x7C, //  ##### 
+    0x44, //  #   # 
+    0x08, //     #  
+    0x10, //    #   
+    0x10, //    #   
+    0x20, //   #    
+    0x44, //  #   # 
+    0x7C, //  ##### 
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @708 '[' (7 pixels wide)
+    0x00, //        
+    0x38, //   ###  
+    0x20, //   #    
+    0x20, //   #    
+    0x20, //   #    
+    0x20, //   #    
+    0x20, //   #    
+    0x20, //   #    
+    0x20, //   #    
+    0x20, //   #    
+    0x38, //   ###  
+    0x00, //        
+
+    // @720 '\' (7 pixels wide)
+    0x00, //        
+    0x40, //  #     
+    0x20, //   #    
+    0x20, //   #    
+    0x20, //   #    
+    0x10, //    #   
+    0x10, //    #   
+    0x08, //     #  
+    0x08, //     #  
+    0x08, //     #  
+    0x00, //        
+    0x00, //        
+
+    // @732 ']' (7 pixels wide)
+    0x00, //        
+    0x38, //   ###  
+    0x08, //     #  
+    0x08, //     #  
+    0x08, //     #  
+    0x08, //     #  
+    0x08, //     #  
+    0x08, //     #  
+    0x08, //     #  
+    0x08, //     #  
+    0x38, //   ###  
+    0x00, //        
+
+    // @744 '^' (7 pixels wide)
+    0x00, //        
+    0x10, //    #   
+    0x10, //    #   
+    0x28, //   # #  
+    0x44, //  #   # 
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @756 '_' (7 pixels wide)
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0xFE, // #######
+
+    // @768 '`' (7 pixels wide)
+    0x00, //        
+    0x10, //    #   
+    0x08, //     #  
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @780 'a' (7 pixels wide)
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x38, //   ###  
+    0x44, //  #   # 
+    0x3C, //   #### 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x3E, //   #####
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @792 'b' (7 pixels wide)
+    0x00, //        
+    0xC0, // ##     
+    0x40, //  #     
+    0x58, //  # ##  
+    0x64, //  ##  # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0xF8, // #####  
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @804 'c' (7 pixels wide)
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x3C, //   #### 
+    0x44, //  #   # 
+    0x40, //  #     
+    0x40, //  #     
+    0x44, //  #   # 
+    0x38, //   ###  
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @816 'd' (7 pixels wide)
+    0x00, //        
+    0x0C, //     ## 
+    0x04, //      # 
+    0x34, //   ## # 
+    0x4C, //  #  ## 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x3E, //   #####
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @828 'e' (7 pixels wide)
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x38, //   ###  
+    0x44, //  #   # 
+    0x7C, //  ##### 
+    0x40, //  #     
+    0x40, //  #     
+    0x3C, //   #### 
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @840 'f' (7 pixels wide)
+    0x00, //        
+    0x1C, //    ### 
+    0x20, //   #    
+    0x7C, //  ##### 
+    0x20, //   #    
+    0x20, //   #    
+    0x20, //   #    
+    0x20, //   #    
+    0x7C, //  ##### 
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @852 'g' (7 pixels wide)
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x36, //   ## ##
+    0x4C, //  #  ## 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x3C, //   #### 
+    0x04, //      # 
+    0x38, //   ###  
+    0x00, //        
+
+    // @864 'h' (7 pixels wide)
+    0x00, //        
+    0xC0, // ##     
+    0x40, //  #     
+    0x58, //  # ##  
+    0x64, //  ##  # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0xEE, // ### ###
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @876 'i' (7 pixels wide)
+    0x00, //        
+    0x10, //    #   
+    0x00, //        
+    0x70, //  ###   
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x7C, //  ##### 
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @888 'j' (7 pixels wide)
+    0x00, //        
+    0x10, //    #   
+    0x00, //        
+    0x78, //  ####  
+    0x08, //     #  
+    0x08, //     #  
+    0x08, //     #  
+    0x08, //     #  
+    0x08, //     #  
+    0x08, //     #  
+    0x70, //  ###   
+    0x00, //        
+
+    // @900 'k' (7 pixels wide)
+    0x00, //        
+    0xC0, // ##     
+    0x40, //  #     
+    0x5C, //  # ### 
+    0x48, //  #  #  
+    0x70, //  ###   
+    0x50, //  # #   
+    0x48, //  #  #  
+    0xDC, // ## ### 
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @912 'l' (7 pixels wide)
+    0x00, //        
+    0x30, //   ##   
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x7C, //  ##### 
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @924 'm' (7 pixels wide)
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0xE8, // ### #  
+    0x54, //  # # # 
+    0x54, //  # # # 
+    0x54, //  # # # 
+    0x54, //  # # # 
+    0xFE, // #######
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @936 'n' (7 pixels wide)
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0xD8, // ## ##  
+    0x64, //  ##  # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0xEE, // ### ###
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @948 'o' (7 pixels wide)
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x38, //   ###  
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x38, //   ###  
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @960 'p' (7 pixels wide)
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0xD8, // ## ##  
+    0x64, //  ##  # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x78, //  ####  
+    0x40, //  #     
+    0xE0, // ###    
+    0x00, //        
+
+    // @972 'q' (7 pixels wide)
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x36, //   ## ##
+    0x4C, //  #  ## 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x3C, //   #### 
+    0x04, //      # 
+    0x0E, //     ###
+    0x00, //        
+
+    // @984 'r' (7 pixels wide)
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x6C, //  ## ## 
+    0x30, //   ##   
+    0x20, //   #    
+    0x20, //   #    
+    0x20, //   #    
+    0x7C, //  ##### 
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @996 's' (7 pixels wide)
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x3C, //   #### 
+    0x44, //  #   # 
+    0x38, //   ###  
+    0x04, //      # 
+    0x44, //  #   # 
+    0x78, //  ####  
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @1008 't' (7 pixels wide)
+    0x00, //        
+    0x00, //        
+    0x20, //   #    
+    0x7C, //  ##### 
+    0x20, //   #    
+    0x20, //   #    
+    0x20, //   #    
+    0x22, //   #   #
+    0x1C, //    ### 
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @1020 'u' (7 pixels wide)
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0xCC, // ##  ## 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x4C, //  #  ## 
+    0x36, //   ## ##
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @1032 'v' (7 pixels wide)
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0xEE, // ### ###
+    0x44, //  #   # 
+    0x44, //  #   # 
+    0x28, //   # #  
+    0x28, //   # #  
+    0x10, //    #   
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @1044 'w' (7 pixels wide)
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0xEE, // ### ###
+    0x44, //  #   # 
+    0x54, //  # # # 
+    0x54, //  # # # 
+    0x54, //  # # # 
+    0x28, //   # #  
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @1056 'x' (7 pixels wide)
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0xCC, // ##  ## 
+    0x48, //  #  #  
+    0x30, //   ##   
+    0x30, //   ##   
+    0x48, //  #  #  
+    0xCC, // ##  ## 
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @1068 'y' (7 pixels wide)
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0xEE, // ### ###
+    0x44, //  #   # 
+    0x24, //   #  # 
+    0x28, //   # #  
+    0x18, //    ##  
+    0x10, //    #   
+    0x10, //    #   
+    0x78, //  ####  
+    0x00, //        
+
+    // @1080 'z' (7 pixels wide)
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x7C, //  ##### 
+    0x48, //  #  #  
+    0x10, //    #   
+    0x20, //   #    
+    0x44, //  #   # 
+    0x7C, //  ##### 
+    0x00, //        
+    0x00, //        
+    0x00, //        
+
+    // @1092 '{' (7 pixels wide)
+    0x00, //        
+    0x08, //     #  
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x20, //   #    
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x08, //     #  
+    0x00, //        
+
+    // @1104 '|' (7 pixels wide)
+    0x00, //        
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x00, //        
+    0x00, //        
+
+    // @1116 '}' (7 pixels wide)
+    0x00, //        
+    0x20, //   #    
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x08, //     #  
+    0x10, //    #   
+    0x10, //    #   
+    0x10, //    #   
+    0x20, //   #    
+    0x00, //        
+
+    // @1128 '~' (7 pixels wide)
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x24, //   #  # 
+    0x58, //  # ##  
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+    0x00, //        
+];
+
+
+pins.spiPins(DigitalPin.P15, DigitalPin.P14, DigitalPin.P13)
+pins.spiFormat(8, 0)
+pins.spiFrequency(1000000)
+
+//% weight=20 color=#436EEE icon="\uf108"
 namespace LCD_ST7735_MicrobitV2 {
+    //% blockId=LCD_Init
+    //% blockGap=8
+    //% block="LCD_ST7735_MicrobitV2 Init"
+    //% weight=200
+    export function LCD_Init(): void{
+        pins.digitalWritePin(DigitalPin.P8, 1);
+        control.waitMicros(1000);
+        pins.digitalWritePin(DigitalPin.P8, 0);
+        control.waitMicros(1000);
+        pins.digitalWritePin(DigitalPin.P8, 1);
 
-    // Définition des broches de la micro:bit (Ajuster si nécessaire)
-    const PIN_CS  = DigitalPin.P1;   // Chip Select du LCD
-    const PIN_DC  = DigitalPin.P12;  // Data/Command (Note: Si votre shield utilise P2, changez par P2)
-    const PIN_RST = DigitalPin.P8;   // Reset du LCD
-    const PIN_BL  = AnalogPin.P16;   // Rétroéclairage (Backlight)
+        //ST7735R Frame Rate
+        LCD_WriteReg(0xB1);
+        LCD_WriteData_8Bit(0x01);
+        LCD_WriteData_8Bit(0x2C);
+        LCD_WriteData_8Bit(0x2D);
 
-    const LCD_WIDTH = 160;
-    const LCD_HEIGHT = 128;
+        LCD_WriteReg(0xB2);
+        LCD_WriteData_8Bit(0x01);
+        LCD_WriteData_8Bit(0x2C);
+        LCD_WriteData_8Bit(0x2D);
 
-    // Création du Framebuffer en RAM interne (Micro:bit V2 uniquement)
-    // 160 * 128 * 2 octets (RGB565) = 40960 octets
-    let frameBuffer = pins.createBuffer(LCD_WIDTH * LCD_HEIGHT * 2);
+        LCD_WriteReg(0xB3);
+        LCD_WriteData_8Bit(0x01);
+        LCD_WriteData_8Bit(0x2C);
+        LCD_WriteData_8Bit(0x2D);
+        LCD_WriteData_8Bit(0x01);
+        LCD_WriteData_8Bit(0x2C);
+        LCD_WriteData_8Bit(0x2D);
 
-    export enum COLOR {
-        WHITE = 0xFFFF,
-        BLACK = 0x0000,
-        BLUE = 0x001F,
-        BRED = 0XF81F,
-        GRED = 0XFFE0,
-        GBLUE = 0X07FF,
-        RED = 0xF800,
-        MAGENTA = 0xF81F,
-        GREEN = 0x07E0,
-        CYAN = 0x7FFF,
-        YELLOW = 0xFFE0,
-        BROWN = 0XBC40,
-        BRRED = 0XFC07,
-        GRAY = 0X8430
+        LCD_WriteReg(0xB4); //Column inversion
+        LCD_WriteData_8Bit(0x07);
+
+        //ST7735R Power Sequence
+        LCD_WriteReg(0xC0);
+        LCD_WriteData_8Bit(0xA2);
+        LCD_WriteData_8Bit(0x02);
+        LCD_WriteData_8Bit(0x84);
+        LCD_WriteReg(0xC1);
+        LCD_WriteData_8Bit(0xC5);
+
+        LCD_WriteReg(0xC2);
+        LCD_WriteData_8Bit(0x0A);
+        LCD_WriteData_8Bit(0x00);
+
+        LCD_WriteReg(0xC3);
+        LCD_WriteData_8Bit(0x8A);
+        LCD_WriteData_8Bit(0x2A);
+        LCD_WriteReg(0xC4);
+        LCD_WriteData_8Bit(0x8A);
+        LCD_WriteData_8Bit(0xEE);
+
+        LCD_WriteReg(0xC5); //VCOM
+        LCD_WriteData_8Bit(0x0E);
+
+        //ST7735R Gamma Sequence
+        LCD_WriteReg(0xe0);
+        LCD_WriteData_8Bit(0x0f);
+        LCD_WriteData_8Bit(0x1a);
+        LCD_WriteData_8Bit(0x0f);
+        LCD_WriteData_8Bit(0x18);
+        LCD_WriteData_8Bit(0x2f);
+        LCD_WriteData_8Bit(0x28);
+        LCD_WriteData_8Bit(0x20);
+        LCD_WriteData_8Bit(0x22);
+        LCD_WriteData_8Bit(0x1f);
+        LCD_WriteData_8Bit(0x1b);
+        LCD_WriteData_8Bit(0x23);
+        LCD_WriteData_8Bit(0x37);
+        LCD_WriteData_8Bit(0x00);
+        LCD_WriteData_8Bit(0x07);
+        LCD_WriteData_8Bit(0x02);
+        LCD_WriteData_8Bit(0x10);
+
+        LCD_WriteReg(0xe1);
+        LCD_WriteData_8Bit(0x0f);
+        LCD_WriteData_8Bit(0x1b);
+        LCD_WriteData_8Bit(0x0f);
+        LCD_WriteData_8Bit(0x17);
+        LCD_WriteData_8Bit(0x33);
+        LCD_WriteData_8Bit(0x2c);
+        LCD_WriteData_8Bit(0x29);
+        LCD_WriteData_8Bit(0x2e);
+        LCD_WriteData_8Bit(0x30);
+        LCD_WriteData_8Bit(0x30);
+        LCD_WriteData_8Bit(0x39);
+        LCD_WriteData_8Bit(0x3f);
+        LCD_WriteData_8Bit(0x00);
+        LCD_WriteData_8Bit(0x07);
+        LCD_WriteData_8Bit(0x03);
+        LCD_WriteData_8Bit(0x10);
+
+        LCD_WriteReg(0xF0); //Enable test command
+        LCD_WriteData_8Bit(0x01);
+
+        LCD_WriteReg(0xF6); //Disable ram power save mode
+        LCD_WriteData_8Bit(0x00);
+
+        LCD_WriteReg(0x3A); //65k mode
+        LCD_WriteData_8Bit(0x05);
+
+        LCD_WriteReg(0x36); //MX, MY, RGB mode
+        LCD_WriteData_8Bit(0xF7 & 0xA0); //RGB color filter panel
+        
+        //sleep out
+        LCD_WriteReg(0x11);
+        control.waitMicros(1000);
+
+        //LCD_WriteReg(0x29);
+        SPIRAM_Set_Mode(SRAM_BYTE_MODE);
+    }
+    
+    //% blockId=LCD_Clear
+    //% blockGap=8
+    //% block="LCD Clear"
+    //% weight=195
+    export function LCD_Clear(): void{
+        LCD_SetWindows(0, 0, LCD_WIDTH, LCD_HEIGHT);
+        LCD_SetColor(0xFFFF, LCD_WIDTH + 2, LCD_HEIGHT + 2);
     }
 
-    export enum DOT_PIXEL {
-        DOT_PIXEL_1 = 1,
-        DOT_PIXEL_2,
-        DOT_PIXEL_3,
-        DOT_PIXEL_4
+    //% blockId=LCD_Filling
+    //% blockGap=8
+    //% block="Filling Color %Color"
+    //% weight=195
+    export function LCD_Filling(Color: COLOR): void{
+        LCD_SetWindows(0, 0, LCD_WIDTH, LCD_HEIGHT);
+        LCD_SetColor(Color, LCD_WIDTH + 2, LCD_HEIGHT + 2);
+    }
+	
+	//% blockId=LCD_SetBL
+    //% blockGap=8
+    //% block="Set back light level %Lev"
+	//% Lev.min=0 Lev.max=1023
+    //% weight=180
+    export function LCD_SetBL(Lev: number): void{
+        pins.analogWritePin(AnalogPin.P1, 1023)
     }
 
-    export enum LINE_STYLE {
-        LINE_SOLID = 0,
-        LINE_DOTTED
+    function LCD_WriteReg(reg: number): void {
+        pins.digitalWritePin(DigitalPin.P12, 0);
+        pins.digitalWritePin(DigitalPin.P16, 0);
+        pins.spiWrite(reg);
+        pins.digitalWritePin(DigitalPin.P16, 1);
     }
 
-    export enum DRAW_FILL {
-        DRAW_EMPTY = 0,
-        DRAW_FULL
+    function LCD_WriteData_8Bit(Data: number): void {
+        pins.digitalWritePin(DigitalPin.P12, 1);
+        pins.digitalWritePin(DigitalPin.P16, 0);
+        pins.spiWrite(Data);
+        pins.digitalWritePin(DigitalPin.P16, 1);
     }
 
-    // Table de police simplifiée intégrée (Font12)
-    const Font12_Table = hex`
-    000000000000000000000000082008200820082008200000082000000A500A500A50000000000000000000000249024907D0024907D0024902490000001003E0022001C000A0008203E000400000024105220542024400880150022204210000001C002200320018002C0042003C0000000820082004400000000000000000000000400082010402080208010400820040000001040082004100220041008201040000000000104055403E0010403E005540104000000000082008203E0008200820000000000000000000000000000000000000082008201040000000003E000000000000000000000000000000000000000000000820000000000002010102008400480020001000080000001C00220026002A00320022001C0000000820182008200820082008201C0000001C00220004000820104020803E0000003E00040008200C20022002201C00000006000A00120022003E000200020000003E0020003C000200020022001C0000001C00220020003C0022002201C0000003E00020004000820104010401040000001C00220022001C0022002201C0000001C00220022001E00020022001C00000000000820000000000820000000000000000008200000000008200440000000040008201040208010400820004000000000000003E0000003E00000000000002080104008200440082010402080000001C002200040008200820000008200000220055404A404A40444002003E0000001C00220022003E002200220220000003C00220022003C0022002203C0000001C002200200020002002201C0000003C002200220022002202203C0000003E00200020003C0020002003E0000003E00200020003C002000200200000001C00220020002E0022002201E000002200220022003E00220022022000001C00082008200820082008201C0000000E0002000200020002002201C00000220024002800300028002400220000200020002000200020020003E00000220036002A00220022002202200002200220032002A00260022002200001C0022002200220022002201C000003C00220022003C00200020020000001C002200220022002A0024001A000003C00220022003C00280024002200001C00220020001C0002002201C000003E00082008200820082008200820000220022002200220022002201C0000022002200220014001400082008200002200220022002A002A003600220002200220140008201400220022000220022014000820082008200820003E00020004000820104020803E000001C00104010401040104010401C00000002000400082010402080400080000001C00041004100410041004101C00000008201400220000000000000000000000000000000000000000003E00001040082004000000000000000000000000001C0002001E0022001E00002002003C00220022003C000000000000001C00200020001C0000020002001E00220022001E000000000000001C0022003E0020001C0000060008203E000820082008200000000000001E00220022001E0002001C2002003C0022002200220000000820000008200820082008200000004000000040004000400040004400382002002400280030002C002200000C00082008200820082008200E00000000000036002A0022002200000000000003C00220022002200000000000001C00220022001C00000000000003C0022003C00200020000000000001E0022001E0002000200000000000016001A002000200000000000001C0020001C0002001C0000040004001E0004000400060000000000002200220022001E000000000000220022001400082000000000000022002A002A0014000000000000220014000820140022000000000000220022001E0002001C000000000003E00040008203E0000000C00104010403000104010400C000820082008200000082008200820030000820008203000082008200C00000000003C0000000000000000
-    `;
-
-    function LCD_WriteReg(cmd: number): void {
-        pins.digitalWritePin(PIN_DC, 0);
-        pins.digitalWritePin(PIN_CS, 0);
-        pins.spiWrite(cmd);
-        pins.digitalWritePin(PIN_CS, 1);
-    }
-
-    function LCD_WriteData(data: number): void {
-        pins.digitalWritePin(PIN_DC, 1);
-        pins.digitalWritePin(PIN_CS, 0);
-        pins.spiWrite(data);
-        pins.digitalWritePin(PIN_CS, 1);
-    }
-
-    function LCD_WriteData_Word(data: number): void {
-        pins.digitalWritePin(PIN_DC, 1);
-        pins.digitalWritePin(PIN_CS, 0);
-        pins.spiWrite(data >> 8);
-        pins.spiWrite(data & 0x00FF);
-        pins.digitalWritePin(PIN_CS, 1);
+    function LCD_WriteData_Buf(Buf: number, len: number): void {
+        pins.digitalWritePin(DigitalPin.P12, 1);
+        pins.digitalWritePin(DigitalPin.P16, 0);
+        let i = 0;
+        for(i = 0; i < len; i++) {
+            pins.spiWrite((Buf >> 8));
+            pins.spiWrite((Buf & 0XFF));
+        }
+        pins.digitalWritePin(DigitalPin.P16, 1);
     }
 
     function LCD_SetWindows(Xstart: number, Ystart: number, Xend: number, Yend: number): void {
+        //set the X coordinates
         LCD_WriteReg(0x2A);
-        LCD_WriteData(0x00);
-        LCD_WriteData(Xstart & 0xFF);
-        LCD_WriteData(0x00);
-        LCD_WriteData(Xend & 0xFF);
+        LCD_WriteData_8Bit(0x00);
+        LCD_WriteData_8Bit((Xstart & 0xff) + 1);
+        LCD_WriteData_8Bit(0x00 );
+        LCD_WriteData_8Bit(((Xend - 1) & 0xff) + 1);
 
+        //set the Y coordinates
         LCD_WriteReg(0x2B);
-        LCD_WriteData(0x00);
-        LCD_WriteData(Ystart & 0xFF);
-        LCD_WriteData(0x00);
-        LCD_WriteData(Yend & 0xFF);
+        LCD_WriteData_8Bit(0x00);
+        LCD_WriteData_8Bit((Ystart & 0xff) + 2);
+        LCD_WriteData_8Bit(0x00 );
+        LCD_WriteData_8Bit(((Yend - 1) & 0xff)+ 2);
 
         LCD_WriteReg(0x2C);
     }
 
-    //% blockId=LCD_Init block="Initialize LCD"
-    export function LCD_Init(): void {
-        pins.spiPins(DigitalPin.P15, DigitalPin.P14, DigitalPin.P13);
-        pins.spiFrequency(8000000); // ⚡ Boost du bus SPI à 8 MHz
+    function LCD_SetColor(Color:number, Xpoint: number, Ypoint: number, ): void {
+        LCD_WriteData_Buf(Color, Xpoint*Ypoint);
+    }
 
-        pins.digitalWritePin(PIN_CMD, 1);
-        pins.digitalWritePin(PIN_CS, 1);
-        pins.digitalWritePin(PIN_RST, 1);
-        basic.pause(100);
-        pins.digitalWritePin(PIN_RST, 0);
-        basic.pause(100);
-        pins.digitalWritePin(PIN_RST, 1);
-        basic.pause(100);
+    function LCD_SetPoint(Xpoint:number, Ypoint:number, Color:number): void {
+        let Addr = (Xpoint + Ypoint * 160)* 2;
+        SPIRAM_WR_Byte(Addr, Color >> 8);
+        SPIRAM_WR_Byte(Addr + 1, Color & 0xff);
+    }
+    
+    //% blockId=Draw_Clear
+    //% blockGap=8
+    //% block="Clear Drawing cache"
+    //% weight=195
+    export function LCD_ClearBuf(): void {
+        let i;
+        SPIRAM_Set_Mode(SRAM_STREAM_MODE);
+        pins.digitalWritePin(DigitalPin.P2, 0);
+        pins.spiWrite(SRAM_CMD_WRITE);
+        pins.spiWrite(0);
+        pins.spiWrite(0);
+        pins.spiWrite(0);
 
-        // Configuration ST7735S
-        LCD_WriteReg(0x11);
-        basic.pause(120);
-        LCD_WriteReg(0xB1); LCD_WriteData(0x01); LCD_WriteData(0x2C); LCD_WriteData(0x2D);
-        LCD_WriteReg(0xB2); LCD_WriteData(0x01); LCD_WriteData(0x2C); LCD_WriteData(0x2D);
-        LCD_WriteReg(0xB3); LCD_WriteData(0x01); LCD_WriteData(0x2C); LCD_WriteData(0x2D); LCD_WriteData(0x01); LCD_WriteData(0x2C); LCD_WriteData(0x2D);
-        LCD_WriteReg(0xB4); LCD_WriteData(0x07);
-        LCD_WriteReg(0xC0); LCD_WriteData(0xA2); LCD_WriteData(0x02); LCD_WriteData(0x84);
-        LCD_WriteReg(0xC1); LCD_WriteData(0xC5);
-        LCD_WriteReg(0xC2); LCD_WriteData(0x0A); LCD_WriteData(0x00);
-        LCD_WriteReg(0xC3); LCD_WriteData(0x8A); LCD_WriteData(0x2A);
-        LCD_WriteReg(0xC4); LCD_WriteData(0x8A); LCD_WriteData(0xEE);
-        LCD_WriteReg(0xC5); LCD_WriteData(0x0E);
-        LCD_WriteReg(0x36); LCD_WriteData(0xA8); // Rotation / Mode miroir
-        LCD_WriteReg(0xE0); LCD_WriteData(0x02); LCD_WriteData(0x1c); LCD_WriteData(0x07); LCD_WriteData(0x12); LCD_WriteData(0x37); LCD_WriteData(0x32); LCD_WriteData(0x29); LCD_WriteData(0x2d); LCD_WriteData(0x29); LCD_WriteData(0x25); LCD_WriteData(0x2B); LCD_WriteData(0x39); LCD_WriteData(0x00); LCD_WriteData(0x01); LCD_WriteData(0x03); LCD_WriteData(0x10);
-        LCD_WriteReg(0xE1); LCD_WriteData(0x03); LCD_WriteData(0x1d); LCD_WriteData(0x07); LCD_WriteData(0x06); LCD_WriteData(0x2E); LCD_WriteData(0x2C); LCD_WriteData(0x29); LCD_WriteData(0x2D); LCD_WriteData(0x2E); LCD_WriteData(0x2E); LCD_WriteData(0x35); LCD_WriteData(0x3F); LCD_WriteData(0x00); LCD_WriteData(0x00); LCD_WriteData(0x02); LCD_WriteData(0x10);
-        LCD_WriteReg(0x3A); LCD_WriteData(0x05);
+        for (i = 0; i < 160 * 2 * 128; i++) {
+            pins.spiWrite(0xff);
+        }
+        pins.digitalWritePin(DigitalPin.P2, 1);
+    }
+    
+    //% blockId=LCD_Display
+    //% blockGap=8
+    //% block="Show Full Screen"
+    //% weight=190
+    export function LCD_Display(): void {
+        SPIRAM_Set_Mode(SRAM_STREAM_MODE);
+        LCD_SetWindows(0, 0, 160, 128);
+        let rbuf = [];
+        for (let i=0; i<640; i++) {
+            rbuf[i] = 0;
+        }
+
+        let rdata = 0;
+        for (let i = 0; i < 64; i++) { // read 2line
+            pins.digitalWritePin(DigitalPin.P2, 0);
+            pins.spiWrite(SRAM_CMD_READ);
+            pins.spiWrite(0);
+            pins.spiWrite((640*i)>>8);
+            pins.spiWrite((640*i)&0xff);
+            for(let offset = 0; offset<640; offset++){
+                rbuf[offset] = pins.spiWrite(0x00);
+            }
+            pins.digitalWritePin(DigitalPin.P2, 1);
+
+            pins.digitalWritePin(DigitalPin.P12, 1);
+            pins.digitalWritePin(DigitalPin.P16, 0);
+            for (let offset = 0; offset < 640; offset++) {
+                pins.spiWrite(rbuf[offset]);
+            }
+            pins.digitalWritePin(DigitalPin.P16, 1);   
+        }
+       
+        //Turn on the LCD display
         LCD_WriteReg(0x29);
     }
-
-    //% blockId=LCD_SetBL block="Set Backlight %Light"
-    //% Light.min=0 Light.max=1023
-    export function LCD_SetBL(Light: number): void {
-        pins.analogWritePin(PIN_BL, Light);
-    }
-
-    //% blockId=LCD_ClearBuf block="Clear Buffer"
-    export function LCD_ClearBuf(): void {
-        frameBuffer.fill(0x00); // Nettoie la RAM interne instantanément
-    }
-
-    //% blockId=LCD_Display block="Refresh Screen"
-    export function LCD_Display(): void {
-        LCD_SetWindows(0, 0, LCD_WIDTH - 1, LCD_HEIGHT - 1);
-        pins.digitalWritePin(PIN_DC, 1);
-        pins.digitalWritePin(PIN_CS, 0);
-        pins.spiWriteBuffer(frameBuffer); // ⚡ Envoi global ultra-rapide via DMA matériel !
-        pins.digitalWritePin(PIN_CS, 1);
-    }
-
-    //% blockId=LCD_Clear block="Clear Screen Directly"
-    export function LCD_Clear(): void {
-        LCD_ClearBuf();
-        LCD_Display();
-    }
-
-    //% blockId=DrawPoint block="Draw Point at X %X Y %Y Color %Color Pixel Size %Dot_Pixel"
-    export function DrawPoint(X: number, Y: number, Color: number, Dot_Pixel: DOT_PIXEL): void {
-        for (let XDir_Num = 0; XDir_Num < Dot_Pixel; XDir_Num++) {
-            for (let YDir_Num = 0; YDir_Num < Dot_Pixel; YDir_Num++) {
-                let px = X + XDir_Num;
-                let py = Y + YDir_Num;
-                if (px < LCD_WIDTH && py < LCD_HEIGHT && px >= 0 && py >= 0) {
-                    let idx = (px + py * LCD_WIDTH) * 2;
-                    frameBuffer[idx] = Color >> 8;
-                    frameBuffer[idx + 1] = Color & 0xFF;
-                }
+        
+    //% blockId=DrawPoint
+    //% blockGap=8
+    //% block="Draw Point|x %Xpoint|y %Ypoint|Color %Color|Point Size %Dot_Pixel"
+    //% Xpoint.min=1 Xpoint.max=160 Ypoint.min=1 Ypoint.max=128
+    //% Color.min=0 Color.max=65535
+    //% weight=150
+    export function DrawPoint(Xpoint:number, Ypoint:number, Color:number, Dot_Pixel:DOT_PIXEL): void {
+        let XDir_Num ,YDir_Num;
+        for(XDir_Num = 0; XDir_Num < Dot_Pixel; XDir_Num++) {
+            for(YDir_Num = 0; YDir_Num < Dot_Pixel; YDir_Num++) {
+                LCD_SetPoint(Xpoint + XDir_Num - Dot_Pixel, Ypoint + YDir_Num - Dot_Pixel, Color);
             }
         }
     }
 
-    //% blockId=DrawLine block="Draw Line from X1 %Xstart Y1 %Ystart to X2 %Xend Y2 %Yend Color %Color Pixel Size %Dot_Pixel Style %Line_Style"
-    export function DrawLine(Xstart: number, Ystart: number, Xend: number, Yend: number, Color: number, Dot_Pixel: DOT_PIXEL, Line_Style: LINE_STYLE): void {
-        let Xcurr = Xstart;
-        let Ycurr = Ystart;
-        let dx = Math.abs(Xend - Xstart);
-        let dy = Math.abs(Yend - Ystart);
-        let s1 = Xend > Xstart ? 1 : -1;
-        let s2 = Yend > Ystart ? 1 : -1;
-        let interchange = 0;
+	//% blockId=DrawLine
+	//% blockGap=8
+	//% block="Draw Line|Xstart %Xstart|Ystart %Ystart|Xend %Xend|Yend %Yend|Color %Color|width %Line_width|Style %Line_Style"
+	//% Xstart.min=1 Xstart.max=160 Ystart.min=1 Ystart.max=128
+	//% Xend.min=1 Xend.max=160 Yend.min=1 Yend.max=128
+	//% Color.min=0 Color.max=65535
+	//% weight=140
+    export function DrawLine(Xstart: number, Ystart: number, Xend: number, Yend: number, Color: number, Line_width: DOT_PIXEL, Line_Style: LINE_STYLE): void {
+        if (Xstart > Xend)
+            Swop_AB(Xstart, Xend);
+        if (Ystart > Yend)
+            Swop_AB(Ystart, Yend);
 
-        if (dy > dx) {
-            let temp = dx; dx = dy; dy = temp;
-            interchange = 1;
-        }
-        let e = 2 * dy - dx;
-        let Num = 0;
+        let Xpoint = Xstart;
+        let Ypoint = Ystart;
+        let dx = Xend - Xstart >= 0 ? Xend - Xstart : Xstart - Xend;
+        let dy = Yend - Ystart <= 0 ? Yend - Ystart : Ystart - Yend;
 
-        for (let i = 0; i <= dx; i++) {
-            Num++;
-            if (Line_Style == LINE_STYLE.LINE_SOLID || Num % 4 == 0) {
-                DrawPoint(Xcurr, Ycurr, Color, Dot_Pixel);
+        // Increment direction, 1 is positive, -1 is counter;
+        let XAddway = Xstart < Xend ? 1 : -1;
+        let YAddway = Ystart < Yend ? 1 : -1;
+
+        //Cumulative error
+        let Esp = dx + dy;
+        let Line_Style_Temp = 0;
+
+        for (; ;) {
+            Line_Style_Temp++;
+            //Painted dotted line, 2 point is really virtual
+            if (Line_Style == LINE_STYLE.LINE_DOTTED && Line_Style_Temp % 3 == 0) {
+                DrawPoint(Xpoint, Ypoint, GUI_BACKGROUND_COLOR, Line_width);
+                Line_Style_Temp = 0;
+            } else {
+                DrawPoint(Xpoint, Ypoint, Color, Line_width);
             }
-            while (e >= 0) {
-                if (interchange == 1) Xcurr += s1;
-                else Ycurr += s2;
-                e = e - 2 * dx;
+            if (2 * Esp >= dy) {
+                if (Xpoint == Xend) break;
+                Esp += dy
+                Xpoint += XAddway;
             }
-            if (interchange == 1) Ycurr += s2;
-            else Xcurr += s1;
-            e = e + 2 * dy;
+            if (2 * Esp <= dx) {
+                if (Ypoint == Yend) break;
+                Esp += dx;
+                Ypoint += YAddway;
+            }
         }
     }
+    
+    //% blockId=DrawRectangle
+    //% blockGap=8
+    //% block="Draw Rectangle|Xstart2 %Xstart2|Ystart2 %Ystart2|Xend2 %Xend2|Yend2 %Yend2|Color %Color|Filled %Filled |Line width %Dot_Pixel"
+    //% Xstart2.min=1 Xstart2.max=160 Ystart2.min=1 Ystart2.max=128 
+    //% Xend2.min=1 Xend2.max=160 Yend2.min=1 Yend2.max=128
+    //% Color.min=0 Color.max=65535
+    //% weight=130
+    export function DrawRectangle(Xstart2: number, Ystart2: number, Xend2: number, Yend2: number, Color: number, Filled: DRAW_FILL, Dot_Pixel: DOT_PIXEL): void {
+        if (Xstart2 > Xend2)
+            Swop_AB(Xstart2, Xend2);
+        if (Ystart2 > Yend2)
+            Swop_AB(Ystart2, Yend2);
 
-    //% blockId=DrawRectangle block="Draw Rectangle X1 %Xstart Y1 %Ystart X2 %Xend Y2 %Yend Color %Color Fill %Draw_Fill Pixel Size %Dot_Pixel"
-    export function DrawRectangle(Xstart: number, Ystart: number, Xend: number, Yend: number, Color: number, Draw_Fill: DRAW_FILL, Dot_Pixel: DOT_PIXEL): void {
-        if (Draw_Fill == DRAW_FILL.DRAW_FULL) {
-            for (let i = Ystart; i <= Yend; i++) {
-                DrawLine(Xstart, i, Xend, i, Color, Dot_Pixel, LINE_STYLE.LINE_SOLID);
-            }
+        let Ypoint = 0;
+        if (Filled) {
+			for(Ypoint = Ystart2; Ypoint < Yend2; Ypoint++) {
+				DrawLine(Xstart2, Ypoint, Xend2, Ypoint, Color, Dot_Pixel, LINE_STYLE.LINE_SOLID);
+			}
         } else {
-            DrawLine(Xstart, Ystart, Xend, Ystart, Color, Dot_Pixel, LINE_STYLE.LINE_SOLID);
-            DrawLine(Xstart, Ystart, Xstart, Yend, Color, Dot_Pixel, LINE_STYLE.LINE_SOLID);
-            DrawLine(Xend, Ystart, Xend, Yend, Color, Dot_Pixel, LINE_STYLE.LINE_SOLID);
-            DrawLine(Xstart, Yend, Xend, Yend, Color, Dot_Pixel, LINE_STYLE.LINE_SOLID);
+            DrawLine(Xstart2, Ystart2, Xend2, Ystart2, Color, Dot_Pixel, LINE_STYLE.LINE_SOLID);
+            DrawLine(Xstart2, Ystart2, Xstart2, Yend2, Color, Dot_Pixel, LINE_STYLE.LINE_SOLID);
+            DrawLine(Xend2, Yend2, Xend2, Ystart2, Color, Dot_Pixel, LINE_STYLE.LINE_SOLID);
+            DrawLine(Xend2, Yend2, Xstart2, Yend2, Color, Dot_Pixel, LINE_STYLE.LINE_SOLID);
         }
     }
 
-    //% blockId=DrawCircle block="Draw Circle Center X %X_Center Y %Y_Center Radius %Radius Color %Color Fill %Draw_Fill Pixel Size %Dot_Pixel"
+    //% blockId=DrawCircle
+    //% blockGap=8
+    //% block="Draw Circle|X_Center %X_Center|Y_Center %Y_Center|Radius %Radius|Color %Color|Filled %Draw_Fill|Line width %Dot_Pixel"
+	//% X_Center.min=1 X_Center.max=160 Y_Center.min=1 Y_Center.max=128
+	//% Radius.min=0 Radius.max=160
+    //% Color.min=0 Color.max=65535
+    //% weight=120
     export function DrawCircle(X_Center: number, Y_Center: number, Radius: number, Color: number, Draw_Fill: DRAW_FILL, Dot_Pixel: DOT_PIXEL): void {
-        let Esp = 3 - (Radius << 1);
+        //Draw a circle from(0, R) as a starting point
         let XCurrent = 0;
         let YCurrent = Radius;
 
-        while (XCurrent <= YCurrent) {
-            if (Draw_Fill == DRAW_FILL.DRAW_FULL) {
-                for (let sCount = XCurrent; sCount <= YCurrent; sCount++) {
-                    DrawPoint(X_Center + XCurrent, Y_Center + sCount, Color, Dot_Pixel);
-                    DrawPoint(X_Center - XCurrent, Y_Center + sCount, Color, Dot_Pixel);
-                    DrawPoint(X_Center + sCount, Y_Center + XCurrent, Color, Dot_Pixel);
-                    DrawPoint(X_Center - sCount, Y_Center + XCurrent, Color, Dot_Pixel);
-                    DrawPoint(X_Center + XCurrent, Y_Center - sCount, Color, Dot_Pixel);
-                    DrawPoint(X_Center - XCurrent, Y_Center - sCount, Color, Dot_Pixel);
-                    DrawPoint(X_Center + sCount, Y_Center - XCurrent, Color, Dot_Pixel);
-                    DrawPoint(X_Center - sCount, Y_Center - XCurrent, Color, Dot_Pixel);
+        //Cumulative error,judge the next point of the logo
+        let Esp = 3 - (Radius << 1);
+
+        let sCountY = 0;
+        if (Draw_Fill == DRAW_FILL.DRAW_FULL) {//DrawPoint(Xpoint, Ypoint, GUI_BACKGROUND_COLOR, Line_width);
+            while (XCurrent <= YCurrent) { //Realistic circles
+                for (sCountY = XCurrent; sCountY <= YCurrent; sCountY++) {
+                    DrawPoint(X_Center + XCurrent, Y_Center + sCountY, Color, DOT_PIXEL.DOT_PIXEL_1);             //1
+                    DrawPoint(X_Center - XCurrent, Y_Center + sCountY, Color, DOT_PIXEL.DOT_PIXEL_1);             //2
+                    DrawPoint(X_Center - sCountY, Y_Center + XCurrent, Color, DOT_PIXEL.DOT_PIXEL_1);             //3
+                    DrawPoint(X_Center - sCountY, Y_Center - XCurrent, Color, DOT_PIXEL.DOT_PIXEL_1);             //4
+                    DrawPoint(X_Center - XCurrent, Y_Center - sCountY, Color, DOT_PIXEL.DOT_PIXEL_1);             //5
+                    DrawPoint(X_Center + XCurrent, Y_Center - sCountY, Color, DOT_PIXEL.DOT_PIXEL_1);             //6
+                    DrawPoint(X_Center + sCountY, Y_Center - XCurrent, Color, DOT_PIXEL.DOT_PIXEL_1);             //7
+                    DrawPoint(X_Center + sCountY, Y_Center + XCurrent, Color, DOT_PIXEL.DOT_PIXEL_1);
                 }
-            } else {
-                DrawPoint(X_Center + XCurrent, Y_Center + YCurrent, Color, Dot_Pixel);
-                DrawPoint(X_Center - XCurrent, Y_Center + YCurrent, Color, Dot_Pixel);
-                DrawPoint(X_Center + YCurrent, Y_Center + XCurrent, Color, Dot_Pixel);
-                DrawPoint(X_Center - YCurrent, Y_Center + XCurrent, Color, Dot_Pixel);
-                DrawPoint(X_Center + XCurrent, Y_Center - YCurrent, Color, Dot_Pixel);
-                DrawPoint(X_Center - XCurrent, Y_Center - YCurrent, Color, Dot_Pixel);
-                DrawPoint(X_Center + YCurrent, Y_Center - XCurrent, Color, Dot_Pixel);
-                DrawPoint(X_Center - YCurrent, Y_Center - XCurrent, Color, Dot_Pixel);
+                if (Esp < 0)
+                    Esp += 4 * XCurrent + 6;
+                else {
+                    Esp += 10 + 4 * (XCurrent - YCurrent);
+                    YCurrent--;
+                }
+                XCurrent++;
             }
-            if (Esp < 0) Esp += (4 * XCurrent + 6);
-            else {
-                Esp += (10 + 4 * (XCurrent - YCurrent));
-                YCurrent--;
+        } else { //Draw a hollow circle
+            while (XCurrent <= YCurrent) {
+                DrawPoint(X_Center + XCurrent, Y_Center + YCurrent, Color, Dot_Pixel);             //1
+                DrawPoint(X_Center - XCurrent, Y_Center + YCurrent, Color, Dot_Pixel);             //2
+                DrawPoint(X_Center - YCurrent, Y_Center + XCurrent, Color, Dot_Pixel);             //3
+                DrawPoint(X_Center - YCurrent, Y_Center - XCurrent, Color, Dot_Pixel);             //4
+                DrawPoint(X_Center - XCurrent, Y_Center - YCurrent, Color, Dot_Pixel);             //5
+                DrawPoint(X_Center + XCurrent, Y_Center - YCurrent, Color, Dot_Pixel);             //6
+                DrawPoint(X_Center + YCurrent, Y_Center - XCurrent, Color, Dot_Pixel);             //7
+                DrawPoint(X_Center + YCurrent, Y_Center + XCurrent, Color, Dot_Pixel);             //0
+
+                if (Esp < 0)
+                    Esp += 4 * XCurrent + 6;
+                else {
+                    Esp += 10 + 4 * (XCurrent - YCurrent);
+                    YCurrent--;
+                }
+                XCurrent++;
             }
-            XCurrent++;
         }
     }
+    
+    //% blockId=DisString
+    //% blockGap=8
+    //% block="Show String|X %Xchar|Y %Ychar|char %ch|Color %Color"
+    //% Xchar.min=1 Xchar.max=160 Ychar.min=1 Ychar.max=128 
+    //% Color.min=0 Color.max=65535
+    //% weight=100
+    export function DisString(Xchar: number, Ychar: number, ch: string, Color: number): void{
+		let Xpoint = Xchar;
+		let Ypoint = Ychar;
+        let Font_Height = 12;
+        let Font_Width = 7;
+		let ch_len = ch.length;
+		let i = 0;
+		for(i = 0; i < ch_len; i++){
+			let ch_asicc =  ch.charCodeAt(i) - 32;//NULL = 32
+			let Char_Offset = ch_asicc * 12;
+			
+			if((Xpoint + Font_Width) > 160) {
+				Xpoint = Xchar;
+				Ypoint += Font_Height;
+			}
 
-    //% blockId=DisString block="Display String %str at X %Xchar Y %Ychar Color %Color"
-    export function DisString(Xchar: number, Ychar: number, str: string, Color: number): void {
-        let Xcurr = Xchar;
-        let Ycurr = Ychar;
-        for (let i = 0; i < str.length; i++) {
-            let ch = str.charCodeAt(i);
-            if (ch < 32 || ch > 126) ch = 32; // Remplacer hors-limite par espace
-            let fontIdx = (ch - 32) * 12;
+			// If the Y direction is full, reposition to(Xstart, Ystart)
+			if((Ypoint  + Font_Height) > 128) {
+				Xpoint = Xchar;
+				Ypoint = Ychar;
+			}
+			DisChar_1207(Xpoint, Ypoint, Char_Offset, Color);
+			
+			//The next word of the abscissa increases the font of the broadband
+			Xpoint += Font_Width;
+		} 
+    }
+    
+    //% blockId=DisNumber
+    //% blockGap=8
+    //% block="Show number|X %Xnum|Y %Ynum|number %num|Color %Color"
+    //% Xnum.min=1 Xnum.max=160 Ynum.min=1 Ynum.max=128 
+    //% Color.min=0 Color.max=65535
+    //% weight=100
+    export function DisNumber(Xnum: number, Ynum: number, num: number, Color: number): void{
+		let Xpoint = Xnum;
+		let Ypoint = Ynum;
+        DisString(Xnum, Ynum, num + "", Color);
+    }
 
-            for (let Page = 0; Page < 12; Page++) {
-                let bits = Font12_Table[fontIdx + Page];
-                for (let Column = 0; Column < 8; Column++) {
-                    if (bits & (0x80 >> Column)) {
-                        DrawPoint(Xcurr + Column, Ycurr + Page, Color, DOT_PIXEL.DOT_PIXEL_1);
-                    }
-                }
-            }
-            Xcurr += 8; // Avancer au caractère suivant
-            if (Xcurr + 8 > LCD_WIDTH) {
-                Xcurr = Xchar;
-                Ycurr += 12;
-            }
-        }
+    function DisChar_1207(Xchar:number, Ychar:number, Char_Offset:number, Color:number): void {
+        let Page = 0, Column = 0;
+        let off = Char_Offset
+        for(Page = 0; Page < 12; Page ++ ) {
+            for(Column = 0; Column < 7; Column ++ ) {
+                if(Font12_Table[off] & (0x80 >> (Column % 8)))
+                    LCD_SetPoint(Xchar + Column, Ychar + Page, Color);
+
+                //One pixel is 8 bits
+                if(Column % 8 == 7)
+                    off++;
+            }// Write a line
+            if(7 % 8 != 0)
+                off++;
+        }// Write all
+    }
+
+    //spi ram
+    function SPIRAM_Set_Mode(mode:number): void {
+        pins.digitalWritePin(DigitalPin.P2, 0);
+        pins.spiWrite(SRAM_CMD_WRSR);
+        pins.spiWrite(mode);
+        pins.digitalWritePin(DigitalPin.P2, 1);
+    }
+
+    function SPIRAM_RD_Byte(Addr:number): number{
+        let RD_Byte;        
+        pins.digitalWritePin(DigitalPin.P2, 0);
+        pins.spiWrite(SRAM_CMD_READ);
+        pins.spiWrite(0X00);
+        pins.spiWrite(Addr >> 8);
+        pins.spiWrite(Addr);
+        RD_Byte = pins.spiWrite(0x00);
+        pins.digitalWritePin(DigitalPin.P2, 1);
+
+        return RD_Byte;
+    }
+
+    function SPIRAM_WR_Byte(Addr:number, Data:number): void {
+        pins.digitalWritePin(DigitalPin.P2, 0);
+        pins.spiWrite(SRAM_CMD_WRITE);
+        pins.spiWrite(0X00);
+        pins.spiWrite(Addr >> 8);
+        pins.spiWrite(Addr);        
+        pins.spiWrite(Data);
+        pins.digitalWritePin(DigitalPin.P2, 1);
+    }
+
+    function Swop_AB(Point1: number, Point2: number): void {
+        let Temp = 0;
+        Temp = Point1;
+        Point1 = Point2;
+        Point2 = Temp;
     }
 }
