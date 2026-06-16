@@ -1,14 +1,14 @@
-LCD1IN8.LCD_Init()
-LCD1IN8.LCD_SetBL(330)
-LCD1IN8.LCD_Clear()
-LCD1IN8.LCD_ClearBuf()
-LCD1IN8.DrawPoint(
+LCD_ST7735_MicrobitV2.LCD_Init()
+LCD_ST7735_MicrobitV2.LCD_SetBL(330)
+LCD_ST7735_MicrobitV2.LCD_Clear()
+LCD_ST7735_MicrobitV2.LCD_ClearBuf()
+LCD_ST7735_MicrobitV2.DrawPoint(
 41,
 18,
 14270,
 DOT_PIXEL.DOT_PIXEL_4
 )
-LCD1IN8.DrawLine(
+LCD_ST7735_MicrobitV2.DrawLine(
 0,
 128,
 160,
@@ -17,7 +17,7 @@ LCD1IN8.DrawLine(
 DOT_PIXEL.DOT_PIXEL_2,
 LINE_STYLE.LINE_DOTTED
 )
-LCD1IN8.DrawRectangle(
+LCD_ST7735_MicrobitV2.DrawRectangle(
 21,
 42,
 56,
@@ -26,7 +26,7 @@ LCD1IN8.DrawRectangle(
 DRAW_FILL.DRAW_EMPTY,
 DOT_PIXEL.DOT_PIXEL_1
 )
-LCD1IN8.DrawCircle(
+LCD_ST7735_MicrobitV2.DrawCircle(
 70,
 55,
 9,
@@ -34,13 +34,13 @@ LCD1IN8.DrawCircle(
 DRAW_FILL.DRAW_EMPTY,
 DOT_PIXEL.DOT_PIXEL_1
 )
-LCD1IN8.DisString(
+LCD_ST7735_MicrobitV2.DisString(
 56,
 38,
 "hello",
 28011
 )
-LCD1IN8.LCD_Display()
+LCD_ST7735_MicrobitV2.LCD_Display()
 basic.forever(function () {
 	
 })

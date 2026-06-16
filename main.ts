@@ -5,7 +5,7 @@
 * | Info        :
 *----------------
 * | This version:   V2.0
-* | Date        :   2021-01-28
+* | Date        :   2026-16-06
 * | Info        :   for micro:bit v2
 *
 ******************************************************************************/
@@ -1402,10 +1402,10 @@ pins.spiFormat(8, 0)
 pins.spiFrequency(1000000)
 
 //% weight=20 color=#436EEE icon="\uf108"
-namespace LCD1IN8 {
+namespace LCD_ST7735_MicrobitV2 {
     //% blockId=LCD_Init
     //% blockGap=8
-    //% block="LCD1IN8 Init"
+    //% block="LCD_ST7735_MicrobitV2 Init"
     //% weight=200
     export function LCD_Init(): void{
         pins.digitalWritePin(DigitalPin.P8, 1);
