@@ -20,7 +20,7 @@ MIT
 1. Ouvrez votre projet sur [MakeCode micro:bit](https://makecode.microbit.org/).
 2. Cliquez sur l'icône d'engrenage (Paramètres) en haut à droite ⚙️ -> **Extensions**.
 3. Dans la barre de recherche, collez l'URL de votre dépôt GitHub :
-   `https://github.dev/Api0748/ST7735S_Microbit-V2`
+   `https://github.com/Api0748/ST7735S_Microbit-V2`
 4. Cliquez sur le module pour l'ajouter à votre boîte à outils.
 
 ---
