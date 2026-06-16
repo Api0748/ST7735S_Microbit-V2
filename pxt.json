@@ -1,6 +1,6 @@
 {
     "name": "LCD_ST7735_MicrobitV2",
-    "version": "2.1.0",
+    "version": "2.1.1",
     "description": "Revoltman Electronics",
     "dependencies": {
         "core": "*",
